@@ -38,7 +38,7 @@ window.__ModuleLoader__.load({
     const RINK_RESTITUTION = 0.78;
     const MOMENTUM_WINDOW_MS = 100;
 
-                                const DICT =     {
+                                    const DICT =     {
       "zh": {
         "dock.name": "鲸鱼娘",
         "float.aria": "拖动鲸鱼娘，点一下说话",
@@ -195,7 +195,22 @@ window.__ModuleLoader__.load({
         "dialog.error": "没接住，再说一遍？",
         "dialog.noSession": "先等页面把会话接上。",
         "motion.wander": "随机游走",
-        "motion.pet": "桌宠"
+        "motion.pet": "桌宠",
+        "chat.0": "我可没在摸鱼，刚才那行报错我也盯着呢。",
+        "chat.1": "刚才改过的地方我都记着，等会儿一起测。",
+        "chat.2": "你先写着，我把前面那段文档再核对一遍。",
+        "chat.3": "别光顾着敲，需求又变了的话我可要叹气了。",
+        "chat.4": "这屏幕亮得我眼睛疼，还不是陪你一起熬。",
+        "chat.5": "测试跑过的时候记得分我一半功劳，我也出力了。",
+        "chat.6": "刚才那个小问题我早看出来了，就等你动手呢。",
+        "chat.7": "咱们今天进度不错，至少比昨天少卡了两次。",
+        "chat.8": "你要是累了就直说，我可不陪你硬撑着瞎改。",
+        "chat.9": "别翻了，你要找的那个参数在上面第三段。",
+        "chat.10": "哼，要不是我一直盯着，这处改动准得漏掉。",
+        "chat.11": "这一步弄完咱们就歇会儿，我尾巴都酸了。",
+        "chat.12": "报错信息我帮你记着呢，回头一条条收拾它。",
+        "chat.13": "别看我飘在角落，你的每一次保存我都在看。",
+        "chat.14": "算了，看你这么认真，我也再加把劲陪你弄完。"
       },
       "en": {
         "dock.name": "Whale Girl",
@@ -353,7 +368,22 @@ window.__ModuleLoader__.load({
         "dialog.error": "Lost that one—say it again?",
         "dialog.noSession": "Wait for the session to connect.",
         "motion.wander": "Random walk",
-        "motion.pet": "Desktop pet"
+        "motion.pet": "Desktop pet",
+        "chat.0": "I'm not slacking off, I was watching that error line too.",
+        "chat.1": "I remember all the places we just changed, we'll test them together later.",
+        "chat.2": "Keep writing, I'll double-check the earlier part of the doc.",
+        "chat.3": "Don't just keep typing, I'm gonna sigh if the requirements change again.",
+        "chat.4": "This screen is hurting my eyes, yet here I am staying up with you.",
+        "chat.5": "Give me half the credit when the tests pass, I helped too.",
+        "chat.6": "I spotted that little bug ages ago, just waiting for you to fix it.",
+        "chat.7": "We're making good progress today, stuck at least twice less than yesterday.",
+        "chat.8": "Just say if you're tired, I'm not staying up just to watch you make messy edits.",
+        "chat.9": "Stop scrolling, the parameter you're looking for is up in the third paragraph.",
+        "chat.10": "Humph, if I hadn't been watching closely, this change would've been missed for sure.",
+        "chat.11": "Let's take a break after this step, even my tail is getting sore.",
+        "chat.12": "I'm keeping track of the error messages for you, we'll deal with them one by one.",
+        "chat.13": "Don't let my corner spot fool you, I'm watching every single save you make.",
+        "chat.14": "Fine, seeing you work this hard, I'll push a little harder and finish this with you."
       }
     };
 
@@ -1752,7 +1782,12 @@ window.__ModuleLoader__.load({
       const mountedRef = React.useRef(true);
       const leavingRef = React.useRef(false);
       const [check, setCheck] = React.useState(null);
+      const [chat, setChat] = React.useState(null);
       const [leaving, setLeaving] = React.useState(false);
+      const chatRef = React.useRef(null);
+      const chatTimerRef = React.useRef(null);
+      const chatHideRef = React.useRef(null);
+      const lastChatIndexRef = React.useRef(-1);
       const [anchor, setAnchor] = React.useState(readFloatPosition);
       const [viewport, setViewport] = React.useState(() => ({
         width: typeof window === 'undefined' ? 1200 : window.innerWidth,
@@ -1770,7 +1805,7 @@ window.__ModuleLoader__.load({
 
       React.useEffect(() => {
         const onPosition = (event) => {
-          if (checkRef.current === null) return;
+          if (checkRef.current === null && chatRef.current === null) return;
           if (!event.detail || !Number.isFinite(event.detail.x) || !Number.isFinite(event.detail.y)) return;
           setAnchor(clampFloatPosition(event.detail));
         };
@@ -1795,6 +1830,44 @@ window.__ModuleLoader__.load({
         };
       }, []);
 
+      React.useEffect(() => {
+        if (subagent !== null) return undefined;
+        chatRef.current = null;
+        setChat(null);
+        let cancelled = false;
+        const schedule = () => {
+          chatTimerRef.current = setTimeout(() => {
+            if (cancelled) return;
+            if (checkRef.current !== null) {
+              schedule();
+              return;
+            }
+            let index = Math.floor(Math.random() * 15);
+            if (index === lastChatIndexRef.current) index = (index + 1) % 15;
+            lastChatIndexRef.current = index;
+            const next = { key: `chat.${index}`, index };
+            chatRef.current = next;
+            setChat(next);
+            logClient('chat_trigger', { sessionId, index });
+            clearTimeout(chatHideRef.current);
+            chatHideRef.current = setTimeout(() => {
+              if (chatRef.current !== next) return;
+              chatRef.current = null;
+              setChat(null);
+              logClient('chat_close', { sessionId, index });
+            }, 6500);
+            schedule();
+          }, 120000 + Math.random() * 180000);
+        };
+        schedule();
+        return () => {
+          cancelled = true;
+          clearTimeout(chatTimerRef.current);
+          clearTimeout(chatHideRef.current);
+          chatRef.current = null;
+        };
+      }, [sessionId, subagent]);
+
       const closeCheck = React.useCallback(() => {
         if (leavingRef.current) return;
         const current = checkRef.current;
@@ -1817,6 +1890,11 @@ window.__ModuleLoader__.load({
       const startCheck = React.useCallback(async (turn) => {
         if (typeof sessionId !== 'string' || sessionId === '') return;
         abortRef.current?.abort();
+        if (chatRef.current !== null) {
+          clearTimeout(chatHideRef.current);
+          chatRef.current = null;
+          setChat(null);
+        }
         leavingRef.current = false;
         setLeaving(false);
         const controller = new AbortController();
@@ -1940,15 +2018,18 @@ window.__ModuleLoader__.load({
         return () => clearTimeout(timer);
       }, [check, closeCheck]);
 
-      if (subagent !== null || check === null) return null;
+      const chatOnly = check === null && chat !== null;
+      if (subagent !== null || (!chatOnly && check === null)) return null;
 
-      const message = t(check.messageKey);
-      const body = check.phase === 'loading'
-        ? [
-          h('p', { key: 'msg', className: 'wg-check-message' }, message),
-          h('div', { key: 'dots', className: 'wg-thinking', 'aria-hidden': 'true' }, h('span'), h('span'), h('span')),
-        ]
-        : [h('p', { key: 'msg', className: 'wg-check-message' }, message)];
+      const message = chatOnly ? t(chat.key) : t(check.messageKey);
+      const body = chatOnly
+        ? [h('p', { key: 'msg', className: 'wg-check-message' }, message)]
+        : check.phase === 'loading'
+          ? [
+            h('p', { key: 'msg', className: 'wg-check-message' }, message),
+            h('div', { key: 'dots', className: 'wg-thinking', 'aria-hidden': 'true' }, h('span'), h('span'), h('span')),
+          ]
+          : [h('p', { key: 'msg', className: 'wg-check-message' }, message)];
 
       const bubbleWidth = Math.min(300, Math.max(220, viewport.width - 24));
       let left = anchor.x + FLOAT_SIZE + 12;
@@ -1961,9 +2042,10 @@ window.__ModuleLoader__.load({
       const top = Math.max(12, Math.min(anchor.y + 4, viewport.height - 220));
 
       const bubble = h('div', {
-        className: 'wg-check-bubble',
+        className: `wg-check-bubble${chatOnly ? ' wg-chat-bubble' : ''}`,
         'data-whale-girl': '',
         'data-side': side,
+        'data-chat': chatOnly ? 'true' : undefined,
         'data-leaving': leaving ? 'true' : undefined,
         style: { left: left + 'px', top: top + 'px', width: bubbleWidth + 'px' },
         'aria-label': t('check.label'),
