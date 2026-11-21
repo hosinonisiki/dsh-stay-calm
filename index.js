@@ -26,7 +26,7 @@ const LOG_ROUTE = '/whale-girl/log';
 const AVATAR_ROUTE = '/whale-girl/avatar.png';
 const MAX_BODY_BYTES = 16 * 1024;
 const CALL_TIMEOUT_MS = 60_000;
-const MAX_VERDICT_TOKENS = 1024;
+const MAX_VERDICT_TOKENS = 128;
 const LOG_DIR = join(homedir(), '.dsh');
 const LOG_PATH = join(LOG_DIR, 'whale-girl.log');
 
