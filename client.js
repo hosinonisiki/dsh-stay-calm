@@ -23,6 +23,7 @@ window.__ModuleLoader__.load({
     const POSITION_EVENT = 'whale-girl:position';
     const MOOD_EVENT = 'whale-girl:mood';
     const CONFIG_EVENT = 'whale-girl:config';
+    const BUSY_EVENT = 'whale-girl:busy';
     const CHECK_EVERY_MIN = 0;
     const CHECK_EVERY_MAX = 999;
     const MOTION_MODES = Object.freeze([1, 2, 3, 4, 5, 6]);
@@ -1326,6 +1327,14 @@ window.__ModuleLoader__.load({
       }, []);
 
       React.useEffect(() => {
+        const busy = open || dialogBusy;
+        window.dispatchEvent(new CustomEvent(BUSY_EVENT, { detail: busy }));
+        return () => {
+          window.dispatchEvent(new CustomEvent(BUSY_EVENT, { detail: false }));
+        };
+      }, [open, dialogBusy]);
+
+      React.useEffect(() => {
         if (settingsOpen) setFreqInput(String(checkEvery));
       }, [settingsOpen, checkEvery]);
 
@@ -1787,6 +1796,7 @@ window.__ModuleLoader__.load({
       const chatRef = React.useRef(null);
       const chatTimerRef = React.useRef(null);
       const chatHideRef = React.useRef(null);
+      const busyRef = React.useRef(false);
       const lastChatIndexRef = React.useRef(-1);
       const [anchor, setAnchor] = React.useState(readFloatPosition);
       const [viewport, setViewport] = React.useState(() => ({
@@ -1831,6 +1841,20 @@ window.__ModuleLoader__.load({
       }, []);
 
       React.useEffect(() => {
+        const onBusy = (event) => {
+          const busy = Boolean(event.detail);
+          busyRef.current = busy;
+          if (!busy || chatRef.current === null) return;
+          clearTimeout(chatHideRef.current);
+          chatRef.current = null;
+          setChat(null);
+          logClient('chat_skip', { sessionId, reason: 'busy' });
+        };
+        window.addEventListener(BUSY_EVENT, onBusy);
+        return () => window.removeEventListener(BUSY_EVENT, onBusy);
+      }, [sessionId]);
+
+      React.useEffect(() => {
         if (subagent !== null) return undefined;
         chatRef.current = null;
         setChat(null);
@@ -1839,6 +1863,11 @@ window.__ModuleLoader__.load({
           chatTimerRef.current = setTimeout(() => {
             if (cancelled) return;
             if (checkRef.current !== null) {
+              schedule();
+              return;
+            }
+            if (busyRef.current) {
+              logClient('chat_skip', { sessionId, reason: 'busy' });
               schedule();
               return;
             }
