@@ -11,6 +11,7 @@ window.__ModuleLoader__.load({
     const h = React.createElement;
     const NS = 'whale-girl';
     const ROUTE = '/whale-girl/mood-check';
+    const DIALOG_ROUTE = '/whale-girl/dialog';
     const LOG_ROUTE = '/whale-girl/log';
     const AVATAR_ROUTE = '/whale-girl/avatar.png';
     const EMPTY_NODES = Object.freeze([]);
@@ -32,7 +33,7 @@ window.__ModuleLoader__.load({
     const RINK_RESTITUTION = 0.78;
     const MOMENTUM_WINDOW_MS = 100;
 
-                    const DICT =     {
+                        const DICT =     {
       "zh": {
         "dock.name": "鲸鱼娘",
         "float.aria": "拖动鲸鱼娘，点一下说话",
@@ -184,7 +185,10 @@ window.__ModuleLoader__.load({
         "motion.rink": "溜冰场",
         "motion.fall": "弹力球",
         "settings.savedEvery": "好，每 {n} 轮看一次。",
-        "settings.savedOff": "好，不检查了。"
+        "settings.savedOff": "好，不检查了。",
+        "dialog.thinking": "……",
+        "dialog.error": "没接住，再说一遍？",
+        "dialog.noSession": "先等页面把会话接上。"
       },
       "en": {
         "dock.name": "Whale Girl",
@@ -337,7 +341,10 @@ window.__ModuleLoader__.load({
         "motion.rink": "Rink",
         "motion.fall": "Bouncy ball",
         "settings.savedEvery": "Okay, checking every {n}.",
-        "settings.savedOff": "Okay, checks off."
+        "settings.savedOff": "Okay, checks off.",
+        "dialog.thinking": "...",
+        "dialog.error": "Lost that one—say it again?",
+        "dialog.noSession": "Wait for the session to connect."
       }
     };
 
@@ -969,9 +976,12 @@ window.__ModuleLoader__.load({
       const [freqFeedback, setFreqFeedback] = React.useState('');
       const [motionMode, setMotionMode] = React.useState(readMotion);
       const [dialogValue, setDialogValue] = React.useState('');
+      const [dialogBusy, setDialogBusy] = React.useState(false);
       const [dragging, setDragging] = React.useState(false);
       const dragRef = React.useRef(null);
       const rootRef = React.useRef(null);
+      const sessionIdRef = React.useRef('');
+      const localeRef = React.useRef('zh');
       const moodTimer = React.useRef(null);
       const effectTimer = React.useRef(null);
       const openCount = React.useRef(0);
@@ -1169,6 +1179,25 @@ window.__ModuleLoader__.load({
       }, [motionMode, open, dragging]);
 
       React.useEffect(() => {
+        const onSession = (event) => {
+          const detail = event.detail;
+          if (typeof detail === 'string') {
+            sessionIdRef.current = detail;
+            return;
+          }
+          if (!detail || typeof detail.sessionId !== 'string') return;
+          sessionIdRef.current = detail.sessionId;
+          if (typeof detail.locale === 'string' && detail.locale !== '') localeRef.current = detail.locale;
+        };
+        const requestSession = () => {
+          window.dispatchEvent(new CustomEvent('whale-girl:request-session'));
+        };
+        window.addEventListener('whale-girl:session', onSession);
+        requestSession();
+        return () => window.removeEventListener('whale-girl:session', onSession);
+      }, []);
+
+      React.useEffect(() => {
         if (settingsOpen) setFreqInput(String(checkEvery));
       }, [settingsOpen, checkEvery]);
 
@@ -1229,17 +1258,46 @@ window.__ModuleLoader__.load({
         flashMood(nextMood, HEAVY_ACTIONS.has(kind) ? 3200 : 2200);
       };
 
-      const sendDialog = () => {
+      const sendDialog = async () => {
         const text = dialogValue.trim();
-        if (text === '') return;
-        const positive = /谢谢|谢啦|厉害|可爱|喜欢|好棒|辛苦|帮大忙|thank|love|great|nice|awesome/i.test(text);
-        const key = positive ? 'praise' : 'vent';
-        const index = dialogCounts.current[key] % 5;
-        dialogCounts.current[key] = index + 1;
-        setLine(t(`dialog.${key}.${index}`));
+        if (text === '' || dialogBusy) return;
+        const sessionId = sessionIdRef.current;
+        if (sessionId === '') {
+          setLine(t('dialog.noSession'));
+          return;
+        }
+        const positive = /谢谢|谢啦|厉害|可爱|喜欢|好棒|辛苦|帮大忙|夸|不错|真好|太强|牛|爱你|么么|thank|love|great|nice|awesome|good|best/i.test(text);
+        const negative = /生气|烦|气死|难受|糟糕|垃圾|错误|失败|讨厌|滚|吵|fuck|shit/i.test(text);
+        setDialogBusy(true);
         setDialogValue('');
-        showEffect(positive ? 'heart' : 'cloud');
-        flashMood(positive ? 'happy' : 'apologetic', 2800);
+        setLine(t('dialog.thinking'));
+        try {
+          const response = await fetch(DIALOG_ROUTE, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ sessionId, locale: localeRef.current, text }),
+          });
+          const data = await response.json().catch(() => ({}));
+          const reply = typeof data?.text === 'string' ? data.text.trim() : '';
+          if (!response.ok || reply === '') throw new Error('dialog call failed');
+          setLine(reply);
+          if (positive) {
+            showEffect('heart');
+            flashMood('happy', 2800);
+          } else if (negative) {
+            showEffect('cloud');
+            flashMood('apologetic', 2800);
+          } else {
+            flashMood('idle', 1200);
+          }
+        } catch {
+          setLine(t('dialog.error'));
+          showEffect('cloud');
+          flashMood('apologetic', 1800);
+        } finally {
+          setDialogBusy(false);
+        }
       };
 
       const cancelDialog = () => {
@@ -1405,6 +1463,7 @@ window.__ModuleLoader__.load({
           rows: 1,
           maxLength: 500,
           value: dialogValue,
+          disabled: dialogBusy,
           placeholder: t('dialog.placeholder'),
           'aria-label': t('dialog.placeholder'),
           onChange: (event) => setDialogValue(event.target.value),
@@ -1419,7 +1478,7 @@ window.__ModuleLoader__.load({
           h('button', {
             type: 'button',
             className: 'wg-btn wg-btn--primary',
-            disabled: dialogValue.trim() === '',
+            disabled: dialogBusy || dialogValue.trim() === '',
             onClick: sendDialog,
           }, t('dialog.send')),
           h('button', {
@@ -1498,6 +1557,20 @@ window.__ModuleLoader__.load({
     function MoodCheckReady(props) {
       const t = translateOf(props);
       const { useChat, useSession, sessionId, getLocale } = props;
+      React.useEffect(() => {
+        if (typeof sessionId !== 'string' || sessionId === '') return undefined;
+        const announceSession = () => {
+          window.dispatchEvent(new CustomEvent('whale-girl:session', {
+            detail: {
+              sessionId,
+              locale: typeof getLocale === 'function' ? getLocale() : 'zh',
+            },
+          }));
+        };
+        announceSession();
+        window.addEventListener('whale-girl:request-session', announceSession);
+        return () => window.removeEventListener('whale-girl:request-session', announceSession);
+      }, [sessionId, getLocale]);
       const nodes = useChat((chat) => {
         if (chat && chat.legacy && Array.isArray(chat.legacy.nodes)) return chat.legacy.nodes;
         return EMPTY_NODES;

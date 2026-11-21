@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "dsh-stay-calm",
-    "description": "一只漂来漂去的鲸鱼娘。每 N 轮会额外调用一次模型做情绪检查，会产生 token 消耗。"
+    "description": "一只漂来漂去的鲸鱼娘。每 N 轮会额外调用一次模型做情绪检查，对话框回复也会调用模型，都会产生 token 消耗。"
   }
 }

@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "dsh-stay-calm",
-    "description": "A floating whale girl. Every N turns she makes one extra model call for a mood check, which consumes tokens."
+    "description": "A floating whale girl. Every N turns she makes one extra model call for a mood check; dialog replies also call the model and consume tokens."
   }
 }

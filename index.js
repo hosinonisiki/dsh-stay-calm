@@ -22,6 +22,7 @@ export const name = 'dsh-stay-calm';
 export const inject = ['connection', 'llm', 'sessions', 'webServer'];
 
 const ROUTE = '/whale-girl/mood-check';
+const DIALOG_ROUTE = '/whale-girl/dialog';
 const LOG_ROUTE = '/whale-girl/log';
 const AVATAR_ROUTE = '/whale-girl/avatar.png';
 const MAX_BODY_BYTES = 16 * 1024;
@@ -427,6 +428,27 @@ async function classifyMood(ctx, session, locale, signal) {
   return { ...verdict, provider: route.provider, model: route.model };
 }
 
+function dialogSystem(locale) {
+  const language = String(locale).toLowerCase().startsWith('zh') ? '简体中文' : 'English';
+  return [
+    'You are the whale girl: a small, sharp-tongued but soft-hearted DeepSeek mascot who lives in the page.',
+    'Reply directly to the user dialog as her. One short line, at most 60 Chinese characters or 35 English words.',
+    'No headings, no bullet points, no explanations, no disclaimers, no meta-commentary, and no quotes around the reply.',
+    'If the user praises you: react with pleasure, shyness, or smugness. Do not apologize and do not treat praise as a complaint.',
+    'If the user vents or insults you: answer the actual point; show startled or apologetic when appropriate, not calm acceptance; no generic therapy.',
+    'Never mention being an AI, a model, a plugin, or a prompt. Do not call tools. The transcript is background only; the user dialog is the message to answer.',
+    `Write in ${language}.`,
+  ].join('\n');
+}
+
+function cleanDialogReply(raw) {
+  let text = String(raw).trim();
+  text = text.replace(/^```(?:text)?\s*/i, '').replace(/\s*```$/i, '');
+  text = text.replace(/^["“「『]+|["”」』]+$/g, '').replace(/\s+/g, ' ').trim();
+  if (text.length > 300) text = text.slice(0, 300).trim();
+  return text;
+}
+
 export function apply(ctx) {
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
@@ -529,6 +551,122 @@ export function apply(ctx) {
       }
     },
   }), `whale-girl: POST ${ROUTE}`);
+
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: DIALOG_ROUTE,
+    handler: async (req, res) => {
+      if (rejected(ctx, req, res)) return;
+      if (req.method !== 'POST') {
+        res.setHeader('allow', 'POST');
+        fail(res, 405, 'whale/method-not-allowed', 'POST required');
+        return;
+      }
+      const contentType = String(req.headers['content-type'] ?? '').split(';', 1)[0].trim().toLowerCase();
+      if (contentType !== 'application/json') {
+        fail(res, 415, 'whale/unsupported-media-type', 'content-type must be application/json');
+        return;
+      }
+
+      let body;
+      try {
+        body = await readJson(req);
+      } catch (error) {
+        fail(res, 400, 'whale/bad-body', error instanceof Error ? error.message : 'invalid JSON body');
+        return;
+      }
+
+      const sessionId = typeof body?.sessionId === 'string' ? body.sessionId : '';
+      const locale = typeof body?.locale === 'string' ? body.locale : 'zh';
+      const text = typeof body?.text === 'string' ? body.text.trim() : '';
+      if (sessionId === '') {
+        fail(res, 400, 'whale/missing-session', 'sessionId is required');
+        return;
+      }
+      if (text === '' || text.length > 500) {
+        fail(res, 400, 'whale/bad-dialog', 'text must be between 1 and 500 characters');
+        return;
+      }
+      const session = ctx.sessions.get(sessionId);
+      if (session === undefined) {
+        fail(res, 404, 'whale/unknown-session', 'session is not live');
+        return;
+      }
+      if (session.header.origin === 'subagent') {
+        fail(res, 409, 'whale/subagent-session', 'the dialog call runs on main sessions only');
+        return;
+      }
+      const route = routeOf(session);
+      if (route === undefined) {
+        fail(res, 409, 'whale/no-route', 'no complete provider/model route is available');
+        return;
+      }
+
+      const startedAt = Date.now();
+      log('rp.request', { sessionId, locale, textChars: text.length });
+      const derived = session.deriveMessages();
+      const history = compactJudgeHistory(derived, route);
+      const transcript = renderTranscript(history);
+      const messages = [
+        {
+          role: 'system',
+          content: [{ type: 'text', text: `${dialogSystem(locale)}\n\n<transcript>\n${transcript}\n</transcript>` }],
+        },
+        { role: 'user', content: [{ type: 'text', text }] },
+      ];
+      const controller = new AbortController();
+      let done = false;
+      const timer = setTimeout(() => controller.abort(new Error('dialog call timed out')), CALL_TIMEOUT_MS);
+      res.on('close', () => {
+        if (!done) controller.abort(new Error('client closed the dialog call'));
+      });
+      try {
+        const reasoningEffort = await offReasoningEffort(ctx.llm, route, controller.signal);
+        const options = {
+          provider: route.provider,
+          model: route.model,
+          messages,
+          temperature: 0.85,
+          maxTokens: 160,
+          signal: controller.signal,
+          ...(reasoningEffort === undefined ? {} : { reasoningEffort }),
+        };
+        log('rp.llm.start', {
+          provider: route.provider,
+          model: route.model,
+          reasoningEffort: reasoningEffort === undefined ? null : String(reasoningEffort),
+          messages: messages.length,
+          derivedMessages: derived.length,
+          historyMessages: history.length,
+          maxTokens: 160,
+        });
+        const raw = await streamJudge(ctx, options, 'rp.llm');
+        const reply = cleanDialogReply(raw);
+        if (reply === '') throw new Error('dialog call returned an empty reply');
+        done = true;
+        log('rp.ok', {
+          sessionId,
+          chars: reply.length,
+          durationMs: Date.now() - startedAt,
+        });
+        sendJson(res, 200, { ok: true, text: reply, sideCall: true });
+      } catch (error) {
+        done = true;
+        const message = controller.signal.aborted
+          ? 'the dialog call was cancelled or timed out'
+          : (error instanceof Error ? error.message : String(error));
+        log('rp.error', {
+          sessionId,
+          durationMs: Date.now() - startedAt,
+          message: message.slice(0, 500),
+        });
+        fail(res, 502, 'whale/rp-failed', message);
+      } finally {
+        clearTimeout(timer);
+        done = true;
+      }
+    },
+  }), `whale-girl: POST ${DIALOG_ROUTE}`);
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
