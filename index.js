@@ -177,9 +177,7 @@ function parseVerdict(raw) {
     ? Math.min(1, Math.max(0, value.confidence))
     : (value.level >= 2 ? 0.8 : 0.4);
   let level = value.level;
-  if (level === 1 && confidence < 0.7) level = 0;
-  else if (level === 2 && confidence < 0.72) level = 1;
-  else if (level === 3 && confidence < 0.75) level = 2;
+  if (level > 0 && confidence < 0.8) level = 0;
   const reason = typeof value.reason === 'string'
     ? value.reason.replace(/\s+/g, ' ').trim().slice(0, 240)
     : '';

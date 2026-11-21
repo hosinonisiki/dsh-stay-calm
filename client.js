@@ -25,15 +25,17 @@ window.__ModuleLoader__.load({
     const CONFIG_EVENT = 'whale-girl:config';
     const CHECK_EVERY_MIN = 0;
     const CHECK_EVERY_MAX = 999;
-    const MOTION_MODES = Object.freeze([1, 2, 3, 4]);
+    const MOTION_MODES = Object.freeze([1, 2, 3, 4, 5]);
     const MOTION_DEFAULT = 2;
+    const WANDER_MIN_SPEED = 28;
+    const WANDER_MAX_SPEED = 72;
     const DVD_SPEED = 54;
     const GRAVITY = 1500;
     const FALL_RESTITUTION = 0.68;
     const RINK_RESTITUTION = 0.78;
     const MOMENTUM_WINDOW_MS = 100;
 
-                        const DICT =     {
+                            const DICT =     {
       "zh": {
         "dock.name": "鲸鱼娘",
         "float.aria": "拖动鲸鱼娘，点一下说话",
@@ -188,7 +190,8 @@ window.__ModuleLoader__.load({
         "settings.savedOff": "好，不检查了。",
         "dialog.thinking": "……",
         "dialog.error": "没接住，再说一遍？",
-        "dialog.noSession": "先等页面把会话接上。"
+        "dialog.noSession": "先等页面把会话接上。",
+        "motion.wander": "随机游走"
       },
       "en": {
         "dock.name": "Whale Girl",
@@ -344,7 +347,8 @@ window.__ModuleLoader__.load({
         "settings.savedOff": "Okay, checks off.",
         "dialog.thinking": "...",
         "dialog.error": "Lost that one—say it again?",
-        "dialog.noSession": "Wait for the session to connect."
+        "dialog.noSession": "Wait for the session to connect.",
+        "motion.wander": "Random walk"
       }
     };
 
@@ -992,6 +996,8 @@ window.__ModuleLoader__.load({
       motionModeRef.current = motionMode;
       const velocityRef = React.useRef({ x: 0, y: 0 });
       const motionStoppedRef = React.useRef(false);
+      const wanderTargetRef = React.useRef({ x: 0, y: 0 });
+      const wanderNextRef = React.useRef(0);
       const rafRef = React.useRef(null);
       const lastTsRef = React.useRef(0);
       const lastSaveRef = React.useRef(0);
@@ -1116,6 +1122,17 @@ window.__ModuleLoader__.load({
             v.y += GRAVITY * dt;
             v.x *= Math.pow(0.9, dt);
           }
+          if (mode === 5) {
+            if (now >= wanderNextRef.current) {
+              const angle = Math.random() * Math.PI * 2;
+              const speed = WANDER_MIN_SPEED + Math.random() * (WANDER_MAX_SPEED - WANDER_MIN_SPEED);
+              wanderTargetRef.current = { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed };
+              wanderNextRef.current = now + 1200 + Math.random() * 1800;
+            }
+            const steer = Math.min(1, dt * 1.4);
+            v.x += (wanderTargetRef.current.x - v.x) * steer;
+            v.y += (wanderTargetRef.current.y - v.y) * steer;
+          }
           let x = positionNow.x + v.x * dt;
           let y = positionNow.y + v.y * dt;
           if (x < FLOAT_MARGIN) {
@@ -1178,6 +1195,10 @@ window.__ModuleLoader__.load({
           velocityRef.current = { x: 90, y: -55 };
         } else if (motionMode === 4 && Math.hypot(velocityRef.current.x, velocityRef.current.y) < 1) {
           velocityRef.current = { x: 0, y: -320 };
+        } else if (motionMode === 5 && Math.hypot(velocityRef.current.x, velocityRef.current.y) < 1) {
+          velocityRef.current = { x: 38, y: 18 };
+          wanderTargetRef.current = { x: 38, y: 18 };
+          wanderNextRef.current = 0;
         }
         startMotion();
         return stopMotion;
@@ -1222,7 +1243,11 @@ window.__ModuleLoader__.load({
         if (next === 2) velocityRef.current = { x: DVD_SPEED, y: DVD_SPEED };
         else if (next === 3) velocityRef.current = { x: 90, y: -55 };
         else if (next === 4) velocityRef.current = { x: 0, y: -320 };
-        else velocityRef.current = { x: 0, y: 0 };
+        else if (next === 5) {
+          velocityRef.current = { x: 38, y: 18 };
+          wanderTargetRef.current = { x: 38, y: 18 };
+          wanderNextRef.current = 0;
+        } else velocityRef.current = { x: 0, y: 0 };
       };
 
       React.useEffect(() => {
@@ -1408,12 +1433,16 @@ window.__ModuleLoader__.load({
               x: DVD_SPEED * (vx >= 0 ? 1 : -1),
               y: DVD_SPEED * (vy >= 0 ? 1 : -1),
             };
-          } else if (mode === 3 || mode === 4) {
+          } else if (mode === 3 || mode === 4 || mode === 5) {
             const cap = 1200;
             velocityRef.current = {
               x: Math.max(-cap, Math.min(cap, vx)),
               y: Math.max(-cap, Math.min(cap, vy)),
             };
+            if (mode === 5) {
+              wanderTargetRef.current = { ...velocityRef.current };
+              wanderNextRef.current = 0;
+            }
           } else {
             velocityRef.current = { x: 0, y: 0 };
           }
@@ -1494,6 +1523,7 @@ window.__ModuleLoader__.load({
             { value: 2, key: 'motion.dvd' },
             { value: 3, key: 'motion.rink' },
             { value: 4, key: 'motion.fall' },
+            { value: 5, key: 'motion.wander' },
           ].map((entry) => h('option', { key: entry.value, value: entry.value }, t(entry.key))))));
       const dialogContent = h('div', { className: 'wg-dialog' },
         h('textarea', {
@@ -1620,6 +1650,8 @@ window.__ModuleLoader__.load({
         [nodes],
       );
       const seenRef = React.useRef(new Set());
+      const sessionKeyRef = React.useRef(null);
+      const sessionBaselineAtRef = React.useRef(0);
       const [checkEvery, setCheckEvery] = React.useState(readCheckEvery);
       const checkEveryRef = React.useRef(checkEvery);
       checkEveryRef.current = checkEvery;
@@ -1756,6 +1788,28 @@ window.__ModuleLoader__.load({
       }, [sessionId, getLocale]);
 
       React.useEffect(() => {
+        if (typeof sessionId !== 'string' || sessionId === '') return;
+        if (sessionKeyRef.current === sessionId) return;
+        sessionKeyRef.current = sessionId;
+        sessionBaselineAtRef.current = Date.now();
+        const baseline = Array.isArray(userNodes) ? userNodes : [];
+        seenRef.current = new Set(baseline.map((node) => node.seq));
+        const freq = checkEveryRef.current;
+        nextCheckRef.current = freq > 0 ? baseline.length + freq : Number.MAX_SAFE_INTEGER;
+        abortRef.current?.abort();
+        abortRef.current = null;
+        checkRef.current = null;
+        setCheck(null);
+        setLeaving(false);
+        leavingRef.current = false;
+        logClient('check_session', {
+          sessionId,
+          nodes: baseline.length,
+          next: nextCheckRef.current,
+        });
+      }, [sessionId]);
+
+      React.useEffect(() => {
         if (!Array.isArray(userNodes)) return;
         const freq = checkEveryRef.current;
         if (freq <= 0) return;
@@ -1771,6 +1825,10 @@ window.__ModuleLoader__.load({
           next: nextCheckRef.current,
           active: checkRef.current !== null,
         });
+        if (Date.now() - sessionBaselineAtRef.current < 300) {
+          nextCheckRef.current = Math.max(nextCheckRef.current, count + freq);
+          return;
+        }
         if (fresh.length > 1) {
           nextCheckRef.current = Math.floor(count / freq) * freq + freq;
           return;
