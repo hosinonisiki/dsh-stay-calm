@@ -946,9 +946,9 @@ window.__ModuleLoader__.load({
       lift: 'sparkle',
       rice: 'rice',
       poke: 'hand',
-      cheek: 'hand',
-      forehead: 'hand',
-      ear: 'hand',
+      cheek: 'heart',
+      forehead: 'sparkle',
+      ear: 'anger',
       water: 'water',
       wail: 'cloud',
       shake: 'dizzy',
@@ -959,10 +959,10 @@ window.__ModuleLoader__.load({
       hug: 'flustered',
       lift: 'held',
       rice: 'happy',
-      poke: 'pout',
-      cheek: 'pout',
-      forehead: 'pout',
-      ear: 'flustered',
+      poke: 'peek',
+      cheek: 'flustered',
+      forehead: 'shocked',
+      ear: 'shy',
       water: 'shocked',
       wail: 'worried',
       shake: 'dizzy',
@@ -1147,21 +1147,21 @@ window.__ModuleLoader__.load({
             if (petGroundedRef.current) {
               if (now >= petNextActionRef.current) {
                 const action = Math.random();
-                if (action < 0.45) {
+                if (action < 0.4) {
                   petDirRef.current = Math.random() < 0.5 ? -1 : 1;
-                  petWalkUntilRef.current = now + 700 + Math.random() * 1300;
-                  petNextActionRef.current = petWalkUntilRef.current + 350 + Math.random() * 900;
+                  petWalkUntilRef.current = now + 900 + Math.random() * 900;
+                  petNextActionRef.current = petWalkUntilRef.current + 1200 + Math.random() * 1800;
                   v.x = petDirRef.current * PET_WALK_SPEED;
                   v.y = 0;
-                } else if (action < 0.8) {
+                } else if (action < 0.65) {
                   v.x = (Math.random() * 2 - 1) * 60;
                   v.y = -(PET_JUMP_MIN + Math.random() * (PET_JUMP_MAX - PET_JUMP_MIN));
                   petGroundedRef.current = false;
-                  petNextActionRef.current = now + 900 + Math.random() * 1200;
+                  petNextActionRef.current = now + 2200 + Math.random() * 2200;
                 } else {
                   v.x = 0;
                   v.y = 0;
-                  petNextActionRef.current = now + 700 + Math.random() * 1600;
+                  petNextActionRef.current = now + 1800 + Math.random() * 2600;
                 }
               } else if (now < petWalkUntilRef.current) {
                 v.x = petDirRef.current * PET_WALK_SPEED;
@@ -1204,6 +1204,9 @@ window.__ModuleLoader__.load({
               v.y = 0;
               v.x *= Math.pow(0.1, dt);
               petGroundedRef.current = true;
+              if (petNextActionRef.current <= now) {
+                petNextActionRef.current = now + 800 + Math.random() * 1400;
+              }
             } else if (mode === 4) {
               if (Math.abs(v.y) < 90) {
                 v.y = 0;
