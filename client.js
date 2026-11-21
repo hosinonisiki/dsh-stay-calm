@@ -982,6 +982,7 @@ window.__ModuleLoader__.load({
       const rootRef = React.useRef(null);
       const sessionIdRef = React.useRef('');
       const localeRef = React.useRef('zh');
+      const lastDialogReplyRef = React.useRef('');
       const moodTimer = React.useRef(null);
       const effectTimer = React.useRef(null);
       const openCount = React.useRef(0);
@@ -990,6 +991,7 @@ window.__ModuleLoader__.load({
       const motionModeRef = React.useRef(motionMode);
       motionModeRef.current = motionMode;
       const velocityRef = React.useRef({ x: 0, y: 0 });
+      const motionStoppedRef = React.useRef(false);
       const rafRef = React.useRef(null);
       const lastTsRef = React.useRef(0);
       const lastSaveRef = React.useRef(0);
@@ -1105,6 +1107,7 @@ window.__ModuleLoader__.load({
             v.y *= decay;
             if (Math.hypot(v.x, v.y) < 3) {
               velocityRef.current = { x: 0, y: 0 };
+              motionStoppedRef.current = true;
               rafRef.current = null;
               return;
             }
@@ -1134,6 +1137,7 @@ window.__ModuleLoader__.load({
                 if (Math.abs(v.x) < 10) {
                   positionRef.current = { x, y };
                   velocityRef.current = { x: 0, y: 0 };
+                  motionStoppedRef.current = true;
                   setPosition({ x, y });
                   saveFloatPosition({ x, y });
                   rafRef.current = null;
@@ -1167,6 +1171,7 @@ window.__ModuleLoader__.load({
       React.useEffect(() => {
         stopMotion();
         if (motionMode === 1 || open || dragging) return undefined;
+        if (motionStoppedRef.current) return undefined;
         if (motionMode === 2 && Math.hypot(velocityRef.current.x, velocityRef.current.y) < 1) {
           velocityRef.current = { x: DVD_SPEED, y: DVD_SPEED };
         } else if (motionMode === 3 && Math.hypot(velocityRef.current.x, velocityRef.current.y) < 1) {
@@ -1213,6 +1218,7 @@ window.__ModuleLoader__.load({
       const chooseMotion = (value) => {
         const next = saveMotion(Number(value));
         setMotionMode(next);
+        motionStoppedRef.current = false;
         if (next === 2) velocityRef.current = { x: DVD_SPEED, y: DVD_SPEED };
         else if (next === 3) velocityRef.current = { x: 90, y: -55 };
         else if (next === 4) velocityRef.current = { x: 0, y: -320 };
@@ -1276,11 +1282,17 @@ window.__ModuleLoader__.load({
             method: 'POST',
             credentials: 'same-origin',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ sessionId, locale: localeRef.current, text }),
+            body: JSON.stringify({
+              sessionId,
+              locale: localeRef.current,
+              text,
+              previousReply: lastDialogReplyRef.current,
+            }),
           });
           const data = await response.json().catch(() => ({}));
           const reply = typeof data?.text === 'string' ? data.text.trim() : '';
           if (!response.ok || reply === '') throw new Error('dialog call failed');
+          lastDialogReplyRef.current = reply;
           setLine(reply);
           if (positive) {
             showEffect('heart');
@@ -1365,16 +1377,42 @@ window.__ModuleLoader__.load({
         }
         if (drag.moved) {
           const mode = motionModeRef.current;
+          const releaseT = Number.isFinite(event.timeStamp) ? event.timeStamp : performance.now();
+          const lastSample = drag.samples[drag.samples.length - 1];
+          const releaseX = Number.isFinite(event.clientX) ? event.clientX : lastSample.x;
+          const releaseY = Number.isFinite(event.clientY) ? event.clientY : lastSample.y;
+          const cutoff = releaseT - MOMENTUM_WINDOW_MS;
+          const recent = [
+            ...drag.samples,
+            { x: releaseX, y: releaseY, t: releaseT },
+          ].filter((sample) => sample.t >= cutoff);
+          let vx = 0;
+          let vy = 0;
+          if (recent.length >= 2) {
+            const first = recent[0];
+            const last = recent[recent.length - 1];
+            const elapsed = Math.max(1, last.t - first.t);
+            vx = ((last.x - first.x) / elapsed) * 1000;
+            vy = ((last.y - first.y) / elapsed) * 1000;
+          }
+          const speed = Math.hypot(vx, vy);
+          if (cancelled || speed < 5) {
+            motionStoppedRef.current = true;
+            velocityRef.current = { x: 0, y: 0 };
+            saveFloatPosition(positionRef.current);
+            return;
+          }
+          motionStoppedRef.current = false;
           if (mode === 2) {
             velocityRef.current = {
-              x: DVD_SPEED * (drag.vx >= 0 ? 1 : -1),
-              y: DVD_SPEED * (drag.vy >= 0 ? 1 : -1),
+              x: DVD_SPEED * (vx >= 0 ? 1 : -1),
+              y: DVD_SPEED * (vy >= 0 ? 1 : -1),
             };
           } else if (mode === 3 || mode === 4) {
             const cap = 1200;
             velocityRef.current = {
-              x: Math.max(-cap, Math.min(cap, drag.vx)),
-              y: Math.max(-cap, Math.min(cap, drag.vy)),
+              x: Math.max(-cap, Math.min(cap, vx)),
+              y: Math.max(-cap, Math.min(cap, vy)),
             };
           } else {
             velocityRef.current = { x: 0, y: 0 };
