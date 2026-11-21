@@ -31,6 +31,7 @@ window.__ModuleLoader__.load({
     const PET_WALK_SPEED = 45;
     const PET_JUMP_MIN = 360;
     const PET_JUMP_MAX = 540;
+    const WANDER_MAX_SPEED = 74;
     const DVD_SPEED = 54;
     const GRAVITY = 1500;
     const FALL_RESTITUTION = 0.68;
@@ -1176,6 +1177,13 @@ window.__ModuleLoader__.load({
             const damping = Math.exp(-1.8 * dt);
             v.x *= damping;
             v.y *= damping;
+            const speed = Math.hypot(v.x, v.y);
+            if (speed > WANDER_MAX_SPEED) {
+              const target = WANDER_MAX_SPEED + (speed - WANDER_MAX_SPEED) * Math.exp(-3.2 * dt);
+              const scale = target / speed;
+              v.x *= scale;
+              v.y *= scale;
+            }
           }
           if (mode === 6) {
             if (petGroundedRef.current) {
