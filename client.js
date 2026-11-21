@@ -27,8 +27,8 @@ window.__ModuleLoader__.load({
     const CHECK_EVERY_MAX = 999;
     const MOTION_MODES = Object.freeze([1, 2, 3, 4, 5]);
     const MOTION_DEFAULT = 2;
-    const WANDER_MIN_SPEED = 28;
-    const WANDER_MAX_SPEED = 72;
+    const WANDER_MIN_SPEED = 22;
+    const WANDER_MAX_SPEED = 110;
     const DVD_SPEED = 54;
     const GRAVITY = 1500;
     const FALL_RESTITUTION = 0.68;
@@ -1126,12 +1126,26 @@ window.__ModuleLoader__.load({
             if (now >= wanderNextRef.current) {
               const angle = Math.random() * Math.PI * 2;
               const speed = WANDER_MIN_SPEED + Math.random() * (WANDER_MAX_SPEED - WANDER_MIN_SPEED);
-              wanderTargetRef.current = { x: Math.cos(angle) * speed, y: Math.sin(angle) * speed };
-              wanderNextRef.current = now + 1200 + Math.random() * 1800;
+              const blend = 0.35 + Math.random() * 0.45;
+              v.x = v.x * (1 - blend) + Math.cos(angle) * speed * blend;
+              v.y = v.y * (1 - blend) + Math.sin(angle) * speed * blend;
+              wanderNextRef.current = now + 120 + Math.random() * 220;
             }
-            const steer = Math.min(1, dt * 1.4);
-            v.x += (wanderTargetRef.current.x - v.x) * steer;
-            v.y += (wanderTargetRef.current.y - v.y) * steer;
+            v.x += (Math.random() * 2 - 1) * 400 * dt;
+            v.y += (Math.random() * 2 - 1) * 400 * dt;
+            const speed = Math.hypot(v.x, v.y);
+            if (speed > WANDER_MAX_SPEED) {
+              v.x *= WANDER_MAX_SPEED / speed;
+              v.y *= WANDER_MAX_SPEED / speed;
+            } else if (speed > 0 && speed < WANDER_MIN_SPEED) {
+              const boost = WANDER_MIN_SPEED / speed;
+              v.x *= boost;
+              v.y *= boost;
+            } else if (speed === 0) {
+              const angle = Math.random() * Math.PI * 2;
+              v.x = Math.cos(angle) * WANDER_MIN_SPEED;
+              v.y = Math.sin(angle) * WANDER_MIN_SPEED;
+            }
           }
           let x = positionNow.x + v.x * dt;
           let y = positionNow.y + v.y * dt;
