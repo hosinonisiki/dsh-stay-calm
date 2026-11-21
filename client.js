@@ -1141,8 +1141,12 @@ window.__ModuleLoader__.load({
           const now = timestamp || performance.now();
           const dt = Math.min(0.05, Math.max(0, (now - lastTsRef.current) / 1000));
           lastTsRef.current = now;
-          if (dt <= 0 || motionModeRef.current === 1 || openRef.current || draggingRef.current) {
+          if (motionModeRef.current === 1 || openRef.current || draggingRef.current) {
             rafRef.current = null;
+            return;
+          }
+          if (dt <= 0) {
+            rafRef.current = requestAnimationFrame(tick);
             return;
           }
           const mode = motionModeRef.current;
@@ -1306,6 +1310,16 @@ window.__ModuleLoader__.load({
         startMotion();
         return stopMotion;
       }, [motionMode, open, dragging]);
+
+      React.useEffect(() => {
+        const timer = setInterval(() => {
+          if (rafRef.current !== null) return;
+          if (motionStoppedRef.current) return;
+          if (motionModeRef.current === 1 || openRef.current || draggingRef.current) return;
+          startMotion();
+        }, 1000);
+        return () => clearInterval(timer);
+      }, []);
 
       React.useEffect(() => {
         const onSession = (event) => {
