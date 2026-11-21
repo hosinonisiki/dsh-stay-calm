@@ -25,17 +25,20 @@ window.__ModuleLoader__.load({
     const CONFIG_EVENT = 'whale-girl:config';
     const CHECK_EVERY_MIN = 0;
     const CHECK_EVERY_MAX = 999;
-    const MOTION_MODES = Object.freeze([1, 2, 3, 4, 5]);
+    const MOTION_MODES = Object.freeze([1, 2, 3, 4, 5, 6]);
     const MOTION_DEFAULT = 2;
     const WANDER_MIN_SPEED = 22;
     const WANDER_MAX_SPEED = 74;
+    const PET_WALK_SPEED = 45;
+    const PET_JUMP_MIN = 360;
+    const PET_JUMP_MAX = 540;
     const DVD_SPEED = 54;
     const GRAVITY = 1500;
     const FALL_RESTITUTION = 0.68;
     const RINK_RESTITUTION = 0.78;
     const MOMENTUM_WINDOW_MS = 100;
 
-                            const DICT =     {
+                                const DICT =     {
       "zh": {
         "dock.name": "鲸鱼娘",
         "float.aria": "拖动鲸鱼娘，点一下说话",
@@ -191,7 +194,8 @@ window.__ModuleLoader__.load({
         "dialog.thinking": "……",
         "dialog.error": "没接住，再说一遍？",
         "dialog.noSession": "先等页面把会话接上。",
-        "motion.wander": "随机游走"
+        "motion.wander": "随机游走",
+        "motion.pet": "桌宠"
       },
       "en": {
         "dock.name": "Whale Girl",
@@ -348,7 +352,8 @@ window.__ModuleLoader__.load({
         "dialog.thinking": "...",
         "dialog.error": "Lost that one—say it again?",
         "dialog.noSession": "Wait for the session to connect.",
-        "motion.wander": "Random walk"
+        "motion.wander": "Random walk",
+        "motion.pet": "Desktop pet"
       }
     };
 
@@ -998,6 +1003,10 @@ window.__ModuleLoader__.load({
       const motionStoppedRef = React.useRef(false);
       const wanderTargetRef = React.useRef({ x: 0, y: 0 });
       const wanderNextRef = React.useRef(0);
+      const petGroundedRef = React.useRef(false);
+      const petNextActionRef = React.useRef(0);
+      const petWalkUntilRef = React.useRef(0);
+      const petDirRef = React.useRef(1);
       const rafRef = React.useRef(null);
       const lastTsRef = React.useRef(0);
       const lastSaveRef = React.useRef(0);
@@ -1134,21 +1143,68 @@ window.__ModuleLoader__.load({
               v.y *= WANDER_MAX_SPEED / speed;
             }
           }
+          if (mode === 6) {
+            if (petGroundedRef.current) {
+              if (now >= petNextActionRef.current) {
+                const action = Math.random();
+                if (action < 0.45) {
+                  petDirRef.current = Math.random() < 0.5 ? -1 : 1;
+                  petWalkUntilRef.current = now + 700 + Math.random() * 1300;
+                  petNextActionRef.current = petWalkUntilRef.current + 350 + Math.random() * 900;
+                  v.x = petDirRef.current * PET_WALK_SPEED;
+                  v.y = 0;
+                } else if (action < 0.8) {
+                  v.x = (Math.random() * 2 - 1) * 60;
+                  v.y = -(PET_JUMP_MIN + Math.random() * (PET_JUMP_MAX - PET_JUMP_MIN));
+                  petGroundedRef.current = false;
+                  petNextActionRef.current = now + 900 + Math.random() * 1200;
+                } else {
+                  v.x = 0;
+                  v.y = 0;
+                  petNextActionRef.current = now + 700 + Math.random() * 1600;
+                }
+              } else if (now < petWalkUntilRef.current) {
+                v.x = petDirRef.current * PET_WALK_SPEED;
+                v.y = 0;
+              } else {
+                v.x *= Math.pow(0.02, dt);
+                v.y = 0;
+              }
+            } else {
+              v.y += GRAVITY * dt;
+              v.x *= Math.pow(0.98, dt);
+            }
+          }
           let x = positionNow.x + v.x * dt;
           let y = positionNow.y + v.y * dt;
           if (x < FLOAT_MARGIN) {
             x = FLOAT_MARGIN;
-            v.x = Math.abs(v.x) * (mode === 4 ? 0.82 : 1);
+            if (mode === 6) {
+              v.x = 0;
+              petWalkUntilRef.current = 0;
+            } else {
+              v.x = Math.abs(v.x) * (mode === 4 ? 0.82 : 1);
+            }
           } else if (x > maxX) {
             x = maxX;
-            v.x = -Math.abs(v.x) * (mode === 4 ? 0.82 : 1);
+            if (mode === 6) {
+              v.x = 0;
+              petWalkUntilRef.current = 0;
+            } else {
+              v.x = -Math.abs(v.x) * (mode === 4 ? 0.82 : 1);
+            }
           }
           if (y < FLOAT_MARGIN) {
             y = FLOAT_MARGIN;
-            v.y = Math.abs(v.y) * (mode === 4 ? 0.72 : 1);
+            if (mode === 6) v.y = 0;
+            else v.y = Math.abs(v.y) * (mode === 4 ? 0.72 : 1);
           } else if (y > maxY) {
             y = maxY;
-            if (mode === 4) {
+            if (mode === 6) {
+              v.y = 0;
+              v.x *= Math.pow(0.1, dt);
+              petGroundedRef.current = true;
+            } else if (mode === 4) {
               if (Math.abs(v.y) < 90) {
                 v.y = 0;
                 v.x *= Math.pow(0.25, dt);
@@ -1200,6 +1256,8 @@ window.__ModuleLoader__.load({
           velocityRef.current = { x: 30, y: 14 };
           wanderTargetRef.current = { x: 30, y: 14 };
           wanderNextRef.current = 0;
+        } else if (motionMode === 6 && Math.hypot(velocityRef.current.x, velocityRef.current.y) < 1) {
+          velocityRef.current = { x: 0, y: 0 };
         }
         startMotion();
         return stopMotion;
@@ -1248,6 +1306,11 @@ window.__ModuleLoader__.load({
           velocityRef.current = { x: 30, y: 14 };
           wanderTargetRef.current = { x: 30, y: 14 };
           wanderNextRef.current = 0;
+        } else if (next === 6) {
+          velocityRef.current = { x: 0, y: 0 };
+          petGroundedRef.current = false;
+          petNextActionRef.current = 0;
+          petWalkUntilRef.current = 0;
         } else velocityRef.current = { x: 0, y: 0 };
       };
 
@@ -1422,6 +1485,19 @@ window.__ModuleLoader__.load({
             vy = ((last.y - first.y) / elapsed) * 1000;
           }
           const speed = Math.hypot(vx, vy);
+          if (mode === 6) {
+            const cap = 1200;
+            velocityRef.current = {
+              x: Math.max(-cap, Math.min(cap, vx)),
+              y: Math.max(-cap, Math.min(cap, vy)),
+            };
+            motionStoppedRef.current = false;
+            petGroundedRef.current = false;
+            petNextActionRef.current = 0;
+            petWalkUntilRef.current = 0;
+            saveFloatPosition(positionRef.current);
+            return;
+          }
           if (cancelled || speed < 5) {
             motionStoppedRef.current = true;
             velocityRef.current = { x: 0, y: 0 };
@@ -1525,6 +1601,7 @@ window.__ModuleLoader__.load({
             { value: 3, key: 'motion.rink' },
             { value: 4, key: 'motion.fall' },
             { value: 5, key: 'motion.wander' },
+            { value: 6, key: 'motion.pet' },
           ].map((entry) => h('option', { key: entry.value, value: entry.value }, t(entry.key))))));
       const dialogContent = h('div', { className: 'wg-dialog' },
         h('textarea', {
