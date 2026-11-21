@@ -28,8 +28,6 @@ window.__ModuleLoader__.load({
     const CHECK_EVERY_MAX = 999;
     const MOTION_MODES = Object.freeze([1, 2, 3, 4, 5, 6]);
     const MOTION_DEFAULT = 2;
-    const WANDER_MIN_SPEED = 22;
-    const WANDER_MAX_SPEED = 74;
     const PET_WALK_SPEED = 45;
     const PET_JUMP_MIN = 360;
     const PET_JUMP_MAX = 540;
@@ -1178,11 +1176,6 @@ window.__ModuleLoader__.load({
             const damping = Math.exp(-1.8 * dt);
             v.x *= damping;
             v.y *= damping;
-            const speed = Math.hypot(v.x, v.y);
-            if (speed > WANDER_MAX_SPEED) {
-              v.x *= WANDER_MAX_SPEED / speed;
-              v.y *= WANDER_MAX_SPEED / speed;
-            }
           }
           if (mode === 6) {
             if (petGroundedRef.current) {
@@ -1538,11 +1531,7 @@ window.__ModuleLoader__.load({
           }
           const speed = Math.hypot(vx, vy);
           if (mode === 6) {
-            const cap = 1200;
-            velocityRef.current = {
-              x: Math.max(-cap, Math.min(cap, vx)),
-              y: Math.max(-cap, Math.min(cap, vy)),
-            };
+            velocityRef.current = { x: vx, y: vy };
             motionStoppedRef.current = false;
             petGroundedRef.current = false;
             petNextActionRef.current = 0;
@@ -1563,11 +1552,7 @@ window.__ModuleLoader__.load({
               y: DVD_SPEED * (vy >= 0 ? 1 : -1),
             };
           } else if (mode === 3 || mode === 4 || mode === 5) {
-            const cap = 1200;
-            velocityRef.current = {
-              x: Math.max(-cap, Math.min(cap, vx)),
-              y: Math.max(-cap, Math.min(cap, vy)),
-            };
+            velocityRef.current = { x: vx, y: vy };
             if (mode === 5) {
               wanderTargetRef.current = { ...velocityRef.current };
               wanderNextRef.current = 0;
