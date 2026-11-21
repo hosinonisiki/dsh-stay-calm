@@ -28,7 +28,7 @@ window.__ModuleLoader__.load({
     const MOTION_MODES = Object.freeze([1, 2, 3, 4, 5]);
     const MOTION_DEFAULT = 2;
     const WANDER_MIN_SPEED = 22;
-    const WANDER_MAX_SPEED = 110;
+    const WANDER_MAX_SPEED = 74;
     const DVD_SPEED = 54;
     const GRAVITY = 1500;
     const FALL_RESTITUTION = 0.68;
@@ -1123,8 +1123,8 @@ window.__ModuleLoader__.load({
             v.x *= Math.pow(0.9, dt);
           }
           if (mode === 5) {
-            v.x += (Math.random() * 2 - 1) * 380 * Math.sqrt(dt);
-            v.y += (Math.random() * 2 - 1) * 380 * Math.sqrt(dt);
+            v.x += (Math.random() * 2 - 1) * 255 * Math.sqrt(dt);
+            v.y += (Math.random() * 2 - 1) * 255 * Math.sqrt(dt);
             const damping = Math.exp(-1.8 * dt);
             v.x *= damping;
             v.y *= damping;
@@ -1197,8 +1197,8 @@ window.__ModuleLoader__.load({
         } else if (motionMode === 4 && Math.hypot(velocityRef.current.x, velocityRef.current.y) < 1) {
           velocityRef.current = { x: 0, y: -320 };
         } else if (motionMode === 5 && Math.hypot(velocityRef.current.x, velocityRef.current.y) < 1) {
-          velocityRef.current = { x: 38, y: 18 };
-          wanderTargetRef.current = { x: 38, y: 18 };
+          velocityRef.current = { x: 30, y: 14 };
+          wanderTargetRef.current = { x: 30, y: 14 };
           wanderNextRef.current = 0;
         }
         startMotion();
@@ -1245,8 +1245,8 @@ window.__ModuleLoader__.load({
         else if (next === 3) velocityRef.current = { x: 90, y: -55 };
         else if (next === 4) velocityRef.current = { x: 0, y: -320 };
         else if (next === 5) {
-          velocityRef.current = { x: 38, y: 18 };
-          wanderTargetRef.current = { x: 38, y: 18 };
+          velocityRef.current = { x: 30, y: 14 };
+          wanderTargetRef.current = { x: 30, y: 14 };
           wanderNextRef.current = 0;
         } else velocityRef.current = { x: 0, y: 0 };
       };
