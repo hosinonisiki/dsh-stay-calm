@@ -1,0 +1,84 @@
+# dsh-stay-calm
+
+一只漂在 DeepSeek Harness 页面上的鲸鱼娘。平时待在角落里，可以拖、可以摸、可以喂白饭；每 N 轮对话会额外发起一次模型调用，看看你是不是快急了。
+
+> **Token 提醒**：情绪检查是真实的额外模型调用，会产生 token 消耗。默认每 3 轮一次，可以在设置里改成 0 关闭。
+
+## 安装
+
+这是一个 DSH bundle，包含 Host 路由和 Web 客户端。
+
+- GitHub 仓库：https://github.com/hosinonisiki/dsh-stay-calm
+- 在 DSH 的插件管理器里从本仓库安装；或把本地目录作为 bundle 安装。
+- 安装后刷新页面，角色会出现在页面角落。
+
+## 能做什么
+
+- 拖动角色；非静止模式下会带着拖动动量继续运动，位置会记住。
+- 三行动作，每个动作 5 条差分回应：
+  - 第一行：摸摸头 / 抱一下 / 举高高 / 喂白饭
+  - 第二行：戳一下 / 捏脸脸 / 弹额头 / 揪耳朵
+  - 第三行：泼冷水 / 哭天喊地 / 使劲摇晃 / 躺地上发癫
+- 底部对话框：可以夸她，也可以倒苦水；内容只在本地处理，不上传。
+- 右上角齿轮：自由输入检查频率（0–999，0 关闭），切换运动模式。
+- 检查气泡浮在角色旁边，不插进主会话区，没有按钮，也不执行任何操作；只通过发言提示。
+- 平时只有角色本体，没有标题、说明或免责提示。
+
+## 工作原理
+
+1. 客户端统计当前会话的用户消息数。达到设置的间隔后，向 Host 的 `/whale-girl/mood-check` 发一次同源请求。
+2. Host 从当前 Session 读取历史，但**不发送 system，也不发送 tool 调用/工具结果**：
+   - 所有 user 文本都会保留；
+   - 每一轮模型只取第一条和最后一条文字发言；
+   - 生成一段引用式的 compact transcript。
+3. Host 用当前 Session 的 provider/model 发一次独立的 `ctx.llm.stream`，**不传 sessionId**，不写 Session、不注册 system prompt、不注入 inbox。
+4. 模型返回 0–3 级判定。客户端在角色旁边浮出对应气泡，几秒后自动消失，不锁输入框，不执行新会话等操作。
+5. 如果判定文本不是 JSON，会再用一份干净 transcript 做一次兜底判定；兜底也会消耗一次调用。
+
+温度是 `0`，输出上限 `1024`；模型支持时使用 `reasoningEffort: "off"`。检查频率、运动模式、动作和对话框都是本地状态，不产生模型调用。
+
+## Token 消耗与风险
+
+- 每个检查周期都会向当前模型发送一次 transcript，输入 token 随会话里的 user 发言和模型首尾发言增长。
+- 输出最多 1024 tokens；兜底会再发一次请求。
+- 默认每 3 个用户回合检查一次。频率越高，消耗越明显；设为 0 可以完全关闭。
+- transcript 会发给当前已配置的 provider，不新增第三方服务。
+- 调试日志只记录流程元数据，不记录 prompt、对话正文或模型输出；日志位置见下文。
+- 动作、拖拽、运动、设置和对话框都不会调用模型。
+
+## 检查等级
+
+- 0：平稳，默认。
+- 1：有明确措辞层面的轻微不耐烦，或放弃解释、让模型猜心意。
+- 2：明显烦躁；包括高估模型能力、认为模型应无条件直接达成结果。
+- 3：已经急了，伴随攻击性或失控语气。
+
+低等级会提醒把需求、限制、试过的东西说清楚；高等级会先表现慌乱/道歉，再只通过发言建议开新对话。置信度不足时会向低等级降级。
+
+## 调试日志
+
+`~/.dsh/whale-girl.log`（Windows 为 `C:\Users\hosin\.dsh\whale-girl.log`），JSON Lines，只含流程元数据：
+
+```powershell
+Get-Content "$HOME\.dsh\whale-girl.log" -Tail 80
+```
+
+## 素材来源
+
+角色图不是自绘原创角色。
+
+- 当前头像：**YunYueSama** 的 DeepSeek Whale-chan 同人图，裁剪为透明胸像；许可为**大肥鱼项目署名许可 1.0**，全文见 [LICENSE-YunYueSama.txt](LICENSE-YunYueSama.txt)。
+- 上游角色：**上善无形**（原始角色）、**ZipZipPipe**（DeepSeek 女仆鲸鱼娘二次设计）、**xiaoweigen**（设定整理）。
+- 完整署名和再发布注意事项见 [NOTICE.md](NOTICE.md)。
+- 物件小图标：**Twemoji**（`jdecked/twemoji`，CC BY 4.0），SVG 内联使用。
+
+DeepSeek 名称与商标归其权利人，本项目与 DeepSeek 官方无隶属或背书关系。角色素材按上游许可仅作个人非商业使用；代码部分见 [LICENSE](LICENSE)。
+
+## 开发
+
+```powershell
+node --check index.js
+node --check client.js
+```
+
+插件当前只面向 DSH Web 客户端。

@@ -1,0 +1,55 @@
+{
+  "name": "dsh-stay-calm",
+  "version": "1.0.0",
+  "private": false,
+  "type": "module",
+  "description": "A floating whale girl for DeepSeek Harness. Every N turns she makes one extra model call for a mood check, which consumes tokens.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hosinonisiki/dsh-stay-calm.git"
+  },
+  "homepage": "https://github.com/hosinonisiki/dsh-stay-calm#readme",
+  "bugs": {
+    "url": "https://github.com/hosinonisiki/dsh-stay-calm/issues"
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "plugin",
+    "desktop-pet",
+    "whale"
+  ],
+  "license": "MIT",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.png"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.png",
+    "assets/*.png",
+    "README.md",
+    "NOTICE.md",
+    "LICENSE",
+    "LICENSE-YunYueSama.txt"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-chat",
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  }
+}
