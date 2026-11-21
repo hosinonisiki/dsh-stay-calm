@@ -1179,8 +1179,7 @@ window.__ModuleLoader__.load({
             v.y *= damping;
             const speed = Math.hypot(v.x, v.y);
             if (speed > WANDER_MAX_SPEED) {
-              const target = WANDER_MAX_SPEED + (speed - WANDER_MAX_SPEED) * Math.exp(-3.2 * dt);
-              const scale = target / speed;
+              const scale = WANDER_MAX_SPEED / speed;
               v.x *= scale;
               v.y *= scale;
             }
