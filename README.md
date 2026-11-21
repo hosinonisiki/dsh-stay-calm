@@ -1,5 +1,9 @@
 # dsh-stay-calm
 
+<p align="center">
+  <img src="assets/whale-girl-avatar.png" alt="dsh-stay-calm" width="180">
+</p>
+
 写代码写烦了的时候，角落里有只鲸鱼娘陪你一起耗着。
 
 ## 为什么做这个
