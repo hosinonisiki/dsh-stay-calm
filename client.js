@@ -649,6 +649,10 @@ window.__ModuleLoader__.load({
       .wg-object[data-kind="heart"] { left: 50%; top: -10px; transform: translateX(-50%); animation-name: wg-object-heart; }
       .wg-object[data-kind="sparkle"] { left: 2px; top: 4px; }
       .wg-object[data-kind="hand"] { right: 0; top: 28px; width: 30px; height: 30px; }
+      .wg-object[data-kind="handRaised"] { right: 0; top: -18px; width: 40px; height: 40px; }
+      .wg-object[data-kind="pointUp"] { right: -2px; top: 32px; width: 30px; height: 30px; }
+      .wg-object[data-kind="pinch"] { left: 0; top: 32px; width: 32px; height: 32px; }
+      .wg-object[data-kind="okHand"] { left: 50%; top: -12px; margin-left: -16px; width: 32px; height: 32px; }
       .wg-object[data-kind="water"] { left: 50%; top: 0; transform: translateX(-50%); animation-name: wg-object-water; }
       .wg-object[data-kind="cloud"] { left: 50%; top: -8px; transform: translateX(-50%); width: 40px; height: 40px; }
       .wg-object[data-kind="dizzy"] { left: 50%; top: -8px; transform: translateX(-50%); width: 38px; height: 38px; }
