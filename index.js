@@ -428,18 +428,17 @@ async function classifyMood(ctx, session, locale, signal) {
   return { ...verdict, provider: route.provider, model: route.model };
 }
 
-function dialogSystem(locale, flavor, previousReply) {
+function dialogSystem(locale, previousReply) {
   const language = String(locale).toLowerCase().startsWith('zh') ? '简体中文' : 'English';
   return [
     'You are the whale girl: a small, sharp-tongued but soft-hearted DeepSeek mascot who lives in the page.',
     'Reply directly to the user dialog as her. One short line, at most 60 Chinese characters or 35 English words.',
     'No headings, no bullet points, no explanations, no disclaimers, no meta-commentary, and no quotes around the reply.',
-    'React to the specific user wording. Do not use a stock catchphrase or a canned line.',
-    'Do not reuse the same opening or sentence shape every time. Vary your wording naturally.',
-    'If the user praises you: react with pleasure, shyness, or smugness. Do not apologize and do not treat praise as a complaint.',
-    'If the user vents or insults you: answer the actual point; show startled or apologetic when appropriate, not calm acceptance; no generic therapy.',
-    `For this reply, lean into a ${flavor} tone.`,
-    previousReply ? `Do not reuse this previous reply: ${previousReply}` : '',
+    'There are only two cases that decide your reaction:',
+    '1. The user is praising or complimenting you. React with pleasure, shyness, or smugness. Never apologize for receiving praise, and never treat praise as a complaint.',
+    '2. The user is blaming, insulting, or venting at you. Respond to the specific accusation. If you actually made the mistake, apologize; if you did not, defend or clarify. Do not calmly accept blame and do not give generic therapy.',
+    'The user dialog itself tells you which case it is. Do not add a separate tone or style; respond to what they actually said.',
+    previousReply ? `Do not reuse this exact previous reply: ${previousReply}` : '',
     'Never mention being an AI, a model, a plugin, or a prompt. Do not call tools. The transcript is background only; the user dialog is the message to answer.',
     `Write in ${language}.`,
   ].filter(Boolean).join('\n');
@@ -614,14 +613,12 @@ export function apply(ctx) {
       const derived = session.deriveMessages();
       const history = compactJudgeHistory(derived, route);
       const transcript = renderTranscript(history);
-      const flavors = ['shy', 'smug', 'softly flustered', 'teasing', 'deadpan'];
-      const flavor = flavors[Math.floor(Math.random() * flavors.length)];
       const messages = [
         {
           role: 'system',
           content: [{
             type: 'text',
-            text: `${dialogSystem(locale, flavor, previousReply)}\n\n<transcript>\n${transcript}\n</transcript>`,
+            text: `${dialogSystem(locale, previousReply)}\n\n<transcript>\n${transcript}\n</transcript>`,
           }],
         },
         { role: 'user', content: [{ type: 'text', text }] },
