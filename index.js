@@ -239,9 +239,10 @@ function textOf(message) {
 
 /**
  * The compact judge context requested by the user:
- * - every user message with text;
+ * - every human user message with text;
  * - for each model round, only the first and last assistant text message;
- * - no system messages, no tool calls, and no tool results.
+ * - no system messages, no tool calls, and no tool results;
+ * - plugin/AgentTeams user-role injections are not human turns.
  */
 function compactJudgeHistory(messages, route) {
   const kept = [];
@@ -263,6 +264,8 @@ function compactJudgeHistory(messages, route) {
   };
   for (const message of messages) {
     if (message.role === 'user') {
+      const sourceKind = message.source?.kind;
+      if (sourceKind !== undefined && sourceKind !== 'user') continue;
       const text = textOf(message);
       if (text !== '') {
         flushRound();

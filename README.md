@@ -47,7 +47,8 @@
 
 1. 客户端统计当前会话的用户消息数。达到设置的间隔后，向 Host 的 `/whale-girl/mood-check` 发一次同源请求。
 2. Host 从当前 Session 读取历史，但**不发送 system，也不发送 tool 调用/工具结果**：
-   - 所有 user 文本都会保留；
+   - 所有真实 user 文本都会保留；
+   - AgentTeams 等插件插入的 user 角色消息会跳过；
    - 每一轮模型只取第一条和最后一条文字发言；
    - 生成一段引用式的 compact transcript。
 3. Host 用当前 Session 的 provider/model 发一次独立的 `ctx.llm.stream`，**不传 sessionId**，不写 Session、不注册 system prompt、不注入 inbox。
