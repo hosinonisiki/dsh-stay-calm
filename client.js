@@ -1781,6 +1781,7 @@ window.__ModuleLoader__.load({
       );
       const seenRef = React.useRef(new Set());
       const sessionKeyRef = React.useRef(null);
+      const baselinePendingRef = React.useRef(true);
       const sessionBaselineAtRef = React.useRef(0);
       const [checkEvery, setCheckEvery] = React.useState(readCheckEvery);
       const checkEveryRef = React.useRef(checkEvery);
@@ -1989,26 +1990,40 @@ window.__ModuleLoader__.load({
         if (typeof sessionId !== 'string' || sessionId === '') return;
         if (sessionKeyRef.current === sessionId) return;
         sessionKeyRef.current = sessionId;
+        baselinePendingRef.current = true;
         sessionBaselineAtRef.current = Date.now();
-        const baseline = Array.isArray(userNodes) ? userNodes : [];
-        seenRef.current = new Set(baseline.map((node) => node.seq));
-        const freq = checkEveryRef.current;
-        nextCheckRef.current = freq > 0 ? baseline.length + freq : Number.MAX_SAFE_INTEGER;
+        seenRef.current = new Set();
+        nextCheckRef.current = Number.MAX_SAFE_INTEGER;
         abortRef.current?.abort();
         abortRef.current = null;
         checkRef.current = null;
         setCheck(null);
         setLeaving(false);
         leavingRef.current = false;
-        logClient('check_session', {
-          sessionId,
-          nodes: baseline.length,
-          next: nextCheckRef.current,
-        });
+        logClient('check_session', { sessionId, nodes: 0, next: null });
       }, [sessionId]);
 
       React.useEffect(() => {
+        if (typeof sessionId !== 'string' || sessionId === '') return;
+        if (sessionKeyRef.current !== sessionId || !baselinePendingRef.current) return;
+        if (!Array.isArray(userNodes) || userNodes.length === 0) return;
+        const baseline = new Set(userNodes.map((node) => node.seq));
+        seenRef.current = baseline;
+        const freq = checkEveryRef.current;
+        const next = freq > 0 ? Math.floor(baseline.size / freq) * freq + freq : Number.MAX_SAFE_INTEGER;
+        nextCheckRef.current = next;
+        baselinePendingRef.current = false;
+        sessionBaselineAtRef.current = Date.now();
+        logClient('check_baseline', {
+          sessionId,
+          nodes: baseline.size,
+          next,
+        });
+      }, [sessionId, userNodes]);
+
+      React.useEffect(() => {
         if (!Array.isArray(userNodes)) return;
+        if (baselinePendingRef.current) return;
         const freq = checkEveryRef.current;
         if (freq <= 0) return;
         const seen = seenRef.current;
