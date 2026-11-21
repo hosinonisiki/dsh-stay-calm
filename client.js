@@ -1785,6 +1785,20 @@ window.__ModuleLoader__.load({
         () => (Array.isArray(nodes) ? nodes.filter((node) => node && node.kind === 'user') : []),
         [nodes],
       );
+      const userTurnOf = (node) => {
+        const location = node?.location;
+        if (location && (location.kind === 'turn' || location.kind === 'step')) {
+          const turn = location.turn?.turn;
+          if (Number.isInteger(turn) && turn > 0) return turn;
+        }
+        if (Number.isInteger(node?.turn) && node.turn > 0) return node.turn;
+        if (Number.isInteger(node?.data?.turn) && node.data.turn > 0) return node.data.turn;
+        return 0;
+      };
+      const latestUserTurn = React.useMemo(
+        () => userNodes.reduce((latest, node) => Math.max(latest, userTurnOf(node)), 0),
+        [userNodes],
+      );
       const seenRef = React.useRef(new Set());
       const sessionKeyRef = React.useRef(null);
       const baselinePendingRef = React.useRef(true);
@@ -2016,16 +2030,19 @@ window.__ModuleLoader__.load({
         const baseline = new Set(userNodes.map((node) => node.seq));
         seenRef.current = baseline;
         const freq = checkEveryRef.current;
-        const next = freq > 0 ? Math.floor(baseline.size / freq) * freq + freq : Number.MAX_SAFE_INTEGER;
+        const count = Math.max(baseline.size, latestUserTurn);
+        const next = freq > 0 ? Math.floor(count / freq) * freq + freq : Number.MAX_SAFE_INTEGER;
         nextCheckRef.current = next;
         baselinePendingRef.current = false;
         sessionBaselineAtRef.current = Date.now();
         logClient('check_baseline', {
           sessionId,
           nodes: baseline.size,
+          turns: latestUserTurn,
+          count,
           next,
         });
-      }, [sessionId, userNodes]);
+      }, [sessionId, userNodes, latestUserTurn]);
 
       React.useEffect(() => {
         if (!Array.isArray(userNodes)) return;
@@ -2036,10 +2053,11 @@ window.__ModuleLoader__.load({
         const fresh = userNodes.filter((node) => !seen.has(node.seq));
         if (fresh.length === 0) return;
         for (const node of fresh) seen.add(node.seq);
-        const count = seen.size;
+        const count = Math.max(seen.size, latestUserTurn);
         logClient('check_count', {
           sessionId,
           count,
+          turns: latestUserTurn,
           every: freq,
           next: nextCheckRef.current,
           active: checkRef.current !== null,
@@ -2057,7 +2075,7 @@ window.__ModuleLoader__.load({
           nextCheckRef.current = Math.floor(count / freq) * freq + freq;
           startCheck(count);
         }
-      }, [userNodes, openState, subagent, startCheck]);
+      }, [userNodes, latestUserTurn, openState, subagent, startCheck]);
 
       React.useEffect(() => {
         if (!check || check.phase === 'loading') return undefined;
