@@ -1568,6 +1568,15 @@ window.__ModuleLoader__.load({
             saveFloatPosition(positionRef.current);
             return;
           }
+          if (mode === 2) {
+            const previous = velocityRef.current;
+            const sx = Math.abs(vx) >= 5 ? (vx >= 0 ? 1 : -1) : (previous.x >= 0 ? 1 : -1);
+            const sy = Math.abs(vy) >= 5 ? (vy >= 0 ? 1 : -1) : (previous.y >= 0 ? 1 : -1);
+            velocityRef.current = { x: DVD_SPEED * sx, y: DVD_SPEED * sy };
+            motionStoppedRef.current = false;
+            saveFloatPosition(positionRef.current);
+            return;
+          }
           if (cancelled || speed < 5) {
             motionStoppedRef.current = true;
             velocityRef.current = { x: 0, y: 0 };
