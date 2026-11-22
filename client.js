@@ -1577,6 +1577,20 @@ window.__ModuleLoader__.load({
             saveFloatPosition(positionRef.current);
             return;
           }
+          if (mode === 3) {
+            velocityRef.current = speed >= 5 ? { x: vx, y: vy } : { x: 90, y: -55 };
+            motionStoppedRef.current = false;
+            saveFloatPosition(positionRef.current);
+            return;
+          }
+          if (mode === 5) {
+            velocityRef.current = speed >= 5 ? { x: vx, y: vy } : { x: 30, y: 14 };
+            motionStoppedRef.current = false;
+            wanderTargetRef.current = { ...velocityRef.current };
+            wanderNextRef.current = 0;
+            saveFloatPosition(positionRef.current);
+            return;
+          }
           if (cancelled || speed < 5) {
             motionStoppedRef.current = true;
             velocityRef.current = { x: 0, y: 0 };
