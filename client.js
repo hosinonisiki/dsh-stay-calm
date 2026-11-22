@@ -1560,6 +1560,14 @@ window.__ModuleLoader__.load({
             saveFloatPosition(positionRef.current);
             return;
           }
+          if (mode === 4) {
+            const released = { x: vx, y: vy };
+            if (Math.hypot(vx, vy) < 1) released.y = 1;
+            velocityRef.current = released;
+            motionStoppedRef.current = false;
+            saveFloatPosition(positionRef.current);
+            return;
+          }
           if (cancelled || speed < 5) {
             motionStoppedRef.current = true;
             velocityRef.current = { x: 0, y: 0 };
