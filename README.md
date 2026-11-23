@@ -82,9 +82,9 @@ dsh plugin --profile web add github:hosinonisiki/dsh-stay-calm
 
 ## 界面
 
-**情绪检查 · 2 级（明显烦躁）**
+**情绪检查 · 0 级（平稳）**
 
-![情绪检查 2 级](https://raw.githubusercontent.com/hosinonisiki/dsh-stay-calm/main/assets/screenshots/mood-check-2.png)
+![情绪检查 0 级](https://raw.githubusercontent.com/hosinonisiki/dsh-stay-calm/main/assets/screenshots/mood-check-0.png)
 
 **情绪检查 · 3 级（已经急了）**
 

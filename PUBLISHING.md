@@ -8,7 +8,7 @@
 - `package.json` 已有 `dsh.bundle.patch` + 根目录 `cordis.patch.yml`，满足市场「可安装」的硬性条件。
 - npm 包名 `dsh-stay-calm` 目前**未被占用**。
 - 已补：`engines.dsh`、`engines.node`、`publishConfig`、`author`、`dsh-plugin` 等 keywords、发布前自检脚本。
-- 已补：市场截图 `assets/screenshots/`（总览、情绪检查 2 级、情绪检查 3 级、互动发言）与 `screenshots.json`。
+- 已补：市场截图 `assets/screenshots/`（总览、情绪检查 0 级、情绪检查 3 级、互动发言）与 `screenshots.json`。
 - 尚未做：`npm publish`、给仓库加 `dsh-plugin` topic、向 awesome 目录提 PR。
 - 本机 npm 尚未登录（`npm whoami` 报 `ENEEDAUTH`）。
 
@@ -73,7 +73,7 @@ dshmarket 的列表来自 [awesome-dsh-plugin](https://github.com/awesome-dsh-pl
 - 分类选 `fun`（Just for Fun），与插件实际用途一致。
 - 描述必须与代码相符；当前条目已按实际行为写成「每 N 轮一次额外调用、0–3 级、6 种运动、12 个互动、对话框发送才调用」。
 - 仓库需要 `dsh-plugin` topic；条目里的 `icon` 使用仓库内的 `icon.png`。
-- 市场截图读仓库根目录的 `screenshots.json`（当前按「总览 / 情绪检查 2 级 / 情绪检查 3 级 / 互动」列出 4 张），不需要写进 YAML；以后换图直接 push 本仓库即可。
+- 市场截图读仓库根目录的 `screenshots.json`（当前按「总览 / 情绪检查 0 级 / 情绪检查 3 级 / 互动」列出 4 张），不需要写进 YAML；以后换图直接 push 本仓库即可。
 - npm 发布不是收录必需，但发布后市场能显示下载量，并优先给 npm 一键安装命令。
 
 ## 5. 其他曝光入口
