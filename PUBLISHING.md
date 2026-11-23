@@ -1,16 +1,16 @@
 # 发布到 npm 与 DSH 插件市场
 
-这份文档记录 `dsh-stay-calm` 的上架步骤。仓库里的代码与包元数据已经准备好；**真正对外写入的动作（npm 发布、PR、GitHub topic）需要账号持有人执行或确认**。
+这份文档记录 `dsh-stay-calm` 的上架步骤。首次发布已经完成；后续发版按第 6 节执行。
 
-## 0. 当前状态（2026-11-23）
+## 0. 当前状态（2026-11-24）
 
 - 仓库公开，`main` 分支，创建已超过 1 天。
 - `package.json` 已有 `dsh.bundle.patch` + 根目录 `cordis.patch.yml`，满足市场「可安装」的硬性条件。
-- npm 包名 `dsh-stay-calm` 目前**未被占用**。
-- 已补：`engines.dsh`、`engines.node`、`publishConfig`、`author`、`dsh-plugin` 等 keywords、发布前自检脚本。
-- 已补：市场截图 `assets/screenshots/`（总览、情绪检查 0 级、情绪检查 3 级、互动发言）与 `screenshots.json`。
-- 尚未做：`npm publish`、给仓库加 `dsh-plugin` topic、向 awesome 目录提 PR。
-- 本机 npm 尚未登录（`npm whoami` 报 `ENEEDAUTH`）。
+- npm 已发布 `1.0.0`，`latest` 指向 `1.0.0`；另有一个 `0.0.0-stage` 的 staged-publishing 占位版本，可忽略。
+- `engines.dsh`、`engines.node`、`publishConfig`、`author`、`dsh-plugin` 等 keywords、发布前自检脚本均已就位。
+- 市场截图 `assets/screenshots/`（总览、情绪检查 0 级、情绪检查 3 级、互动发言）与 `screenshots.json` 已就位。
+- GitHub 仓库 About 与 `dsh-plugin` 等 topics 已设置。
+- awesome-dsh-plugin PR #18227 已合并，目录源已包含本插件；市场站点等待上游 CI 重建后显示。
 
 ## 1. 发布前自检
 
