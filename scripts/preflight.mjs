@@ -103,6 +103,30 @@ if (pkg) {
     if (!existsSync(join(root, required))) fail(`missing ${required}`)
   }
 
+  // Storefront screenshots are declared in the repository, next to package.json.
+  if (existsSync(join(root, 'screenshots.json'))) {
+    const shots = readJson('screenshots.json')
+    const list = Array.isArray(shots) ? shots : shots?.screenshots
+    if (!Array.isArray(list) || list.length < 1 || list.length > 8) {
+      fail('screenshots.json must list 1-8 images')
+    } else {
+      for (const entry of list) {
+        if (typeof entry !== 'string') {
+          fail('screenshots.json entries must be strings')
+          continue
+        }
+        if (/^https:\/\//.test(entry)) continue
+        if (entry.startsWith('/') || entry.split('/').includes('..')) {
+          fail(`screenshot ${entry} must stay inside the repository`)
+          continue
+        }
+        if (!/\.(?:png|jpe?g|webp)$/i.test(entry)) fail(`screenshot ${entry} must be png, jpg, jpeg or webp`)
+        if (!existsSync(join(root, entry))) fail(`missing screenshot ${entry}`)
+      }
+      notes.push(`${list.length} market screenshots`)
+    }
+  }
+
   const release = readText('RELEASE_NOTES.md')
   if (release && !release.includes(`dsh-stay-calm ${pkg.version}`)) {
     fail(`RELEASE_NOTES.md does not mention version ${pkg.version}`)

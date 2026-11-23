@@ -6,6 +6,8 @@
 
 模型没达到预期时，别急着在对话框里发火，先停一停再继续。
 
+![dsh-stay-calm 在 DSH Web 界面中](https://raw.githubusercontent.com/hosinonisiki/dsh-stay-calm/main/assets/screenshots/main.png)
+
 ## 它解决什么问题
 
 模型表现不及预期时，人很容易越聊越气，忍不住反复解释、不断重试，结果不仅没解决问题，反而浪费了更多时间和 token。
@@ -77,6 +79,12 @@ dsh plugin --profile web add github:hosinonisiki/dsh-stay-calm
 - 3：已经急了。
 
 正常调试、报 bug、反馈问题、改需求、提新功能都不算烦躁，即使说得短或直也保持 0 级。拿不准时会往低等级判。
+
+## 界面
+
+| 点开面板 | 互动发言 |
+| --- | --- |
+| ![点开后的面板](https://raw.githubusercontent.com/hosinonisiki/dsh-stay-calm/main/assets/screenshots/panel.png) | ![摸摸头的反应](https://raw.githubusercontent.com/hosinonisiki/dsh-stay-calm/main/assets/screenshots/speech-reaction.png) |
 
 ## 素材来源
 
