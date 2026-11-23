@@ -22,11 +22,31 @@
 
 检查气泡没有按钮，也不执行任何操作；它不会替你发消息、开新会话或改设置。
 
+## 环境要求
+
+- DSH `0.2.1-rc.2` 及以上（`engines.dsh` 已声明）。
+- Web profile（`dsh web`）；安装后刷新页面即可。
+- Node.js 20 及以上。
+
 ## 安装
 
-- GitHub 仓库：https://github.com/hosinonisiki/dsh-stay-calm
-- 在 DSH 的插件管理器里从本仓库安装。
-- 安装后刷新页面，鲸鱼娘会出现在页面角落。
+### 从 npm（推荐）
+
+```powershell
+dsh plugin --profile web add dsh-stay-calm
+```
+
+市场收录后，也可以打开插件页的 **发现 / Discover** 搜索 `dsh-stay-calm`。安装后刷新页面，鲸鱼娘会出现在页面角落。
+
+### 从 GitHub
+
+```powershell
+dsh plugin --profile web add github:hosinonisiki/dsh-stay-calm
+```
+
+也可以在 DSH 的插件管理器里从本仓库安装。GitHub 安装需要本机有 `git`，且可能触发源码构建确认；npm 安装没有这一步。
+
+仓库地址：https://github.com/hosinonisiki/dsh-stay-calm
 
 ## 设置
 

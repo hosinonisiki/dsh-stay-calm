@@ -4,6 +4,10 @@
   "private": false,
   "type": "module",
   "description": "A floating whale girl for DeepSeek Harness. Mood checks and dialog replies make extra model calls that consume tokens.",
+  "author": {
+    "name": "hosinonisiki",
+    "url": "https://github.com/hosinonisiki"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hosinonisiki/dsh-stay-calm.git"
@@ -14,12 +18,26 @@
   },
   "keywords": [
     "dsh",
+    "dsh-plugin",
+    "deepseek",
     "deepseek-harness",
-    "plugin",
+    "client-plugin",
+    "web-ui",
     "desktop-pet",
-    "whale"
+    "whale",
+    "whale-girl",
+    "companion",
+    "fun"
   ],
   "license": "MIT",
+  "engines": {
+    "node": ">=20",
+    "dsh": ">=0.2.1-rc.2 <0.3.0-0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "exports": {
     ".": "./index.js",
     "./client": "./client.js",
@@ -51,5 +69,9 @@
         "@deepseek-ai/dsh-client-ui-conversation"
       ]
     }
+  },
+  "scripts": {
+    "preflight": "node scripts/preflight.mjs",
+    "prepublishOnly": "node scripts/preflight.mjs"
   }
 }
