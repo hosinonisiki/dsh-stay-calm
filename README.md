@@ -82,9 +82,17 @@ dsh plugin --profile web add github:hosinonisiki/dsh-stay-calm
 
 ## 界面
 
-| 点开面板 | 互动发言 |
-| --- | --- |
-| ![点开后的面板](https://raw.githubusercontent.com/hosinonisiki/dsh-stay-calm/main/assets/screenshots/panel.png) | ![摸摸头的反应](https://raw.githubusercontent.com/hosinonisiki/dsh-stay-calm/main/assets/screenshots/speech-reaction.png) |
+**情绪检查 · 2 级（明显烦躁）**
+
+![情绪检查 2 级](https://raw.githubusercontent.com/hosinonisiki/dsh-stay-calm/main/assets/screenshots/mood-check-2.png)
+
+**情绪检查 · 3 级（已经急了）**
+
+![情绪检查 3 级](https://raw.githubusercontent.com/hosinonisiki/dsh-stay-calm/main/assets/screenshots/mood-check-3.png)
+
+**互动发言（摸摸头）**
+
+![摸摸头的反应](https://raw.githubusercontent.com/hosinonisiki/dsh-stay-calm/main/assets/screenshots/speech-reaction.png)
 
 ## 素材来源
 
